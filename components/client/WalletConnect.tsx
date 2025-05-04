@@ -4,18 +4,27 @@ import React, { useState, useEffect } from 'react';
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Loader2, Wallet, LogOut } from 'lucide-react';
+import { injected } from 'wagmi/connectors';
 
 export function WalletConnect({ preferredWallet = 'any' }: { preferredWallet?: 'rainbow' | 'metamask' | 'any' }) {
-  const connectResult = useConnect();
+  const { connectors, connect, isPending: isConnectPending, error: connectError } = useConnect();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const [hasWallet, setHasWallet] = useState(false);
   const [hasRainbow, setHasRainbow] = useState(false);
   const [hasMetaMask, setHasMetaMask] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Detect available wallets
+  // Set mounted state to true when component mounts on client
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Detect available wallets - only run on client
+  useEffect(() => {
+    if (!mounted) return;
+    
     const checkWallets = () => {
       if (typeof window === 'undefined') return;
       
@@ -32,34 +41,37 @@ export function WalletConnect({ preferredWallet = 'any' }: { preferredWallet?: '
     
     checkWallets();
     
-    if (connectResult.error) {
-      console.error('Wallet connection error:', connectResult.error);
+    if (connectError) {
+      console.error('Wallet connection error:', connectError);
     }
-  }, [connectResult.error]);
+  }, [connectError, mounted]);
 
   // Basic connect function that uses the appropriate connector
   const handleConnect = async () => {
     setIsLoading(true);
     try {
-      if (connectResult.connectors.length === 0) return;
+      if (connectors.length === 0) return;
       
-      let connector = connectResult.connectors[0]; // Default to first connector
+      let connector = connectors[0]; // Default to first connector
       
       // Try to find preferred connector
       if (preferredWallet === 'rainbow' && hasRainbow) {
         // When Rainbow is installed, the injected connector will work with it
-        connector = connectResult.connectors.find(c => c.id === 'injected') || connectResult.connectors[0];
+        connector = connectors.find(c => c.id === 'injected') || connectors[0];
       } else if (preferredWallet === 'metamask' && hasMetaMask) {
-        connector = connectResult.connectors.find(c => c.id === 'injected') || connectResult.connectors[0];
+        connector = connectors.find(c => c.id === 'injected') || connectors[0];
       }
       
-      await connectResult.connect({ connector });
+      connect({ connector });
     } catch (err) {
       console.error('Connection error:', err);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Don't render anything until client-side
+  if (!mounted) return null;
 
   // If connected, show address and disconnect button
   if (isConnected && address) {
@@ -80,68 +92,33 @@ export function WalletConnect({ preferredWallet = 'any' }: { preferredWallet?: '
     );
   }
 
-  // Determine button content based on detected wallets and preference
-  const getButtonContent = () => {
-    if (preferredWallet === 'rainbow' && hasRainbow) {
-      return (
-        <>
-          <img src="https://rainbow.me/favicon.ico" alt="Rainbow" className="h-4 w-4 mr-2" />
-          Connect Rainbow
-        </>
-      );
-    } else if (preferredWallet === 'metamask' && hasMetaMask) {
-      return (
-        <>
-          <img src="https://metamask.io/images/metamask-fox.svg" alt="MetaMask" className="h-4 w-4 mr-2" />
-          Connect MetaMask
-        </>
-      );
-    } else if (hasRainbow) {
-      return (
-        <>
-          <img src="https://rainbow.me/favicon.ico" alt="Rainbow" className="h-4 w-4 mr-2" />
-          Connect Rainbow
-        </>
-      );
-    } else if (hasMetaMask) {
-      return (
-        <>
-          <img src="https://metamask.io/images/metamask-fox.svg" alt="MetaMask" className="h-4 w-4 mr-2" />
-          Connect MetaMask
-        </>
-      );
-    } else {
-      return (
-        <>
-          <Wallet className="h-4 w-4 mr-2" />
-          Connect Wallet
-        </>
-      );
-    }
-  };
+  // If no wallet is detected, show install prompt
+  if (!hasWallet) {
+    return (
+      <Button 
+        variant="outline" 
+        onClick={() => window.open('https://metamask.io/download/', '_blank')}
+        className="bg-[#1969FF] hover:bg-[#0F5BFF] text-white"
+      >
+        <Wallet className="h-4 w-4 mr-2" />
+        Install Wallet
+      </Button>
+    );
+  }
 
-  // Determine button style based on preferred wallet
-  const getButtonStyle = () => {
-    if (preferredWallet === 'rainbow' && hasRainbow) {
-      return "bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600";
-    } else {
-      return "bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600";
-    }
-  };
-
-  // If not connected, show connect button
+  // Show connect button
   return (
-    <Button
-      variant="default"
-      className={`px-3 py-1 text-sm ${getButtonStyle()}`}
+    <Button 
       onClick={handleConnect}
-      disabled={isLoading || !hasWallet}
+      disabled={isLoading || isConnectPending}
+      className="bg-[#1969FF] hover:bg-[#0F5BFF] text-white"
     >
-      {isLoading ? (
+      {(isLoading || isConnectPending) ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
       ) : (
-        getButtonContent()
+        <Wallet className="h-4 w-4 mr-2" />
       )}
+      Connect Wallet
     </Button>
   );
 } 

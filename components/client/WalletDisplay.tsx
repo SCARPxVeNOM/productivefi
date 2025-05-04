@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAccount, useEnsName } from 'wagmi';
 import { WalletConnect } from './WalletConnect';
 import { Wallet } from 'lucide-react';
@@ -8,6 +8,15 @@ import { Wallet } from 'lucide-react';
 export function WalletDisplay() {
   const { address, isConnected } = useAccount();
   const { data: ensName } = useEnsName({ address });
+  const [mounted, setMounted] = useState(false);
+  
+  // Set mounted state when component is on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Don't render anything on the server
+  if (!mounted) return null;
   
   // If not connected, show regular wallet connect button
   if (!isConnected || !address) {

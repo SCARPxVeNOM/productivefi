@@ -25,7 +25,10 @@ interface CoinCreateSuccess {
 export default function CreateCoinPage() {
   const { data: walletClient } = useWalletClient();
   const { address } = useAccount();
-  const publicClient = createPublicClient({ chain: base, transport: http() });
+  const publicClient = createPublicClient({ 
+    chain: base, 
+    transport: http() 
+  });
 
   const [formData, setFormData] = useState<FormData>({
     name: "",

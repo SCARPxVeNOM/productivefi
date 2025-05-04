@@ -35,7 +35,10 @@ interface EditState {
 export default function ProfilePage() {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
-  const publicClient = createPublicClient({ chain: base, transport: http() });
+  const publicClient = createPublicClient({ 
+    chain: base, 
+    transport: http() 
+  });
 
   const [coins, setCoins] = useState<Coin[]>([]);
   const [loading, setLoading] = useState(false);

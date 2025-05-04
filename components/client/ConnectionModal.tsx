@@ -6,36 +6,39 @@ import { useWallet } from './WalletContext';
 import { X, Wallet, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useConnect } from 'wagmi';
+import { injected } from 'wagmi/connectors';
 
 export function ConnectionModal() {
   const { requiresConnection, setRequiresConnection, isWalletConnected } = useWallet();
-  const connectResult = useConnect();
+  const { connectors, connect, isPending, error } = useConnect();
   const [hasWallet, setHasWallet] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  
+  // Set mounted state when component is on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Check if MetaMask or other wallet is available
   useEffect(() => {
-    if (!requiresConnection) return;
+    if (!mounted || !requiresConnection) return;
     
     const hasEthereum = typeof window !== 'undefined' && window.ethereum !== undefined;
     setHasWallet(hasEthereum);
     
-    if (connectResult.error) {
-      console.error('Wallet connection error:', connectResult.error);
+    if (error) {
+      console.error('Wallet connection error:', error);
     }
-  }, [requiresConnection, connectResult.error]);
-  
-  if (isWalletConnected) {
-    setRequiresConnection(false);
-    return null;
-  }
+  }, [requiresConnection, error, mounted]);
   
   // Simple connect function
   const handleConnect = async () => {
     setIsLoading(true);
     try {
-      if (connectResult.connectors && connectResult.connectors.length > 0) {
-        await connectResult.connect({ connector: connectResult.connectors[0] });
+      if (connectors && connectors.length > 0) {
+        const connector = connectors.find(c => c.id === 'injected') || connectors[0];
+        connect({ connector });
         setRequiresConnection(false);
       }
     } catch (error) {
@@ -50,77 +53,79 @@ export function ConnectionModal() {
     window.open('https://metamask.io/download/', '_blank');
   };
   
+  // Don't render anything on the server
+  if (!mounted) return null;
+  
+  // If connected or not requesting connection, don't render
+  if (isWalletConnected || !requiresConnection) {
+    return null;
+  }
+  
   return (
     <AnimatePresence>
       {requiresConnection && (
-        <>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 flex items-center justify-center z-50 bg-black/50"
+        >
           <motion.div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setRequiresConnection(false)}
-          />
-          
-          <motion.div
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900 rounded-xl p-6 z-50 w-[90%] max-w-md shadow-xl border border-purple-500/30"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.95 }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-5 max-w-md w-full mx-4 shadow-xl"
           >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">Connect Your Wallet</h2>
+            {/* Close button */}
+            <div className="flex justify-end">
               <button 
                 onClick={() => setRequiresConnection(false)}
-                className="text-gray-400 hover:text-white"
+                className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             
-            {hasWallet ? (
-              <>
-                <p className="text-gray-300 mb-6">
-                  Connect your wallet to access Creator Coins features.
-                </p>
-                
+            {/* Content */}
+            <div className="text-center mt-2 mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">Connect Wallet</h2>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Connect your wallet to interact with the application
+              </p>
+            </div>
+            
+            {/* Connection options */}
+            <div className="space-y-4">
+              {hasWallet ? (
                 <Button
                   variant="default"
-                  className="w-full p-3 text-base justify-center bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600"
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={handleConnect}
-                  disabled={isLoading}
+                  disabled={isLoading || isPending}
                 >
-                  {isLoading ? (
-                    <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                  {(isLoading || isPending) ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
-                    <Wallet className="h-5 w-5 mr-3" />
+                    <Wallet className="h-4 w-4 mr-2" />
                   )}
-                  Connect Wallet
+                  Connect to {typeof window !== 'undefined' && window.ethereum?.isMetaMask ? 'MetaMask' : 'Wallet'}
                 </Button>
-              </>
-            ) : (
-              <>
-                <p className="text-gray-300 mb-6">
-                  You need a wallet to use Creator Coins. We recommend MetaMask:
-                </p>
-                
+              ) : (
                 <Button
-                  variant="default"
-                  className="w-full p-3 text-base justify-center bg-gradient-to-r from-orange-500 to-amber-500"
+                  variant="outline"
+                  className="w-full py-2 border-blue-500 text-blue-600 hover:bg-blue-50"
                   onClick={installMetaMask}
                 >
-                  <img src="https://metamask.io/images/metamask-fox.svg" alt="MetaMask" className="h-5 w-5 mr-3" />
                   Install MetaMask
                 </Button>
-                
-                <p className="text-gray-400 text-sm mt-4">
-                  After installing, refresh this page to connect your wallet.
-                </p>
-              </>
-            )}
+              )}
+              
+              <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4">
+                By connecting, you agree to our Terms of Service and Privacy Policy
+              </p>
+            </div>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   );
