@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Wallet, LogOut } from 'lucide-react';
 
 export function WalletConnect({ preferredWallet = 'any' }: { preferredWallet?: 'rainbow' | 'metamask' | 'any' }) {
-  const { connect, connectors, isLoading, error } = useConnect();
+  const connectResult = useConnect();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const [hasWallet, setHasWallet] = useState(false);
   const [hasRainbow, setHasRainbow] = useState(false);
   const [hasMetaMask, setHasMetaMask] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Detect available wallets
   useEffect(() => {
@@ -31,29 +32,32 @@ export function WalletConnect({ preferredWallet = 'any' }: { preferredWallet?: '
     
     checkWallets();
     
-    if (error) {
-      console.error('Wallet connection error:', error);
+    if (connectResult.error) {
+      console.error('Wallet connection error:', connectResult.error);
     }
-  }, [error]);
+  }, [connectResult.error]);
 
   // Basic connect function that uses the appropriate connector
-  const handleConnect = () => {
+  const handleConnect = async () => {
+    setIsLoading(true);
     try {
-      if (connectors.length === 0) return;
+      if (connectResult.connectors.length === 0) return;
       
-      let connector = connectors[0]; // Default to first connector
+      let connector = connectResult.connectors[0]; // Default to first connector
       
       // Try to find preferred connector
       if (preferredWallet === 'rainbow' && hasRainbow) {
         // When Rainbow is installed, the injected connector will work with it
-        connector = connectors.find(c => c.id === 'injected') || connectors[0];
+        connector = connectResult.connectors.find(c => c.id === 'injected') || connectResult.connectors[0];
       } else if (preferredWallet === 'metamask' && hasMetaMask) {
-        connector = connectors.find(c => c.id === 'injected') || connectors[0];
+        connector = connectResult.connectors.find(c => c.id === 'injected') || connectResult.connectors[0];
       }
       
-      connect({ connector });
+      await connectResult.connect({ connector });
     } catch (err) {
       console.error('Connection error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -65,10 +69,9 @@ export function WalletConnect({ preferredWallet = 'any' }: { preferredWallet?: '
           {address.slice(0, 6)}...{address.slice(-4)}
         </p>
         <Button 
-          variant="outline" 
-          size="sm" 
+          variant="outline"
           onClick={() => disconnect()}
-          className="border-red-500 text-red-400 hover:bg-red-500/10"
+          className="px-2 py-1 text-xs border-red-500 text-red-400 hover:bg-red-500/10"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Disconnect
@@ -130,8 +133,7 @@ export function WalletConnect({ preferredWallet = 'any' }: { preferredWallet?: '
   return (
     <Button
       variant="default"
-      size="sm"
-      className={getButtonStyle()}
+      className={`px-3 py-1 text-sm ${getButtonStyle()}`}
       onClick={handleConnect}
       disabled={isLoading || !hasWallet}
     >

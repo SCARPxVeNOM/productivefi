@@ -9,8 +9,9 @@ import { useConnect } from 'wagmi';
 
 export function ConnectionModal() {
   const { requiresConnection, setRequiresConnection, isWalletConnected } = useWallet();
-  const { connect, connectors, isLoading, error } = useConnect();
+  const connectResult = useConnect();
   const [hasWallet, setHasWallet] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Check if MetaMask or other wallet is available
   useEffect(() => {
@@ -19,10 +20,10 @@ export function ConnectionModal() {
     const hasEthereum = typeof window !== 'undefined' && window.ethereum !== undefined;
     setHasWallet(hasEthereum);
     
-    if (error) {
-      console.error('Wallet connection error:', error);
+    if (connectResult.error) {
+      console.error('Wallet connection error:', connectResult.error);
     }
-  }, [requiresConnection, error]);
+  }, [requiresConnection, connectResult.error]);
   
   if (isWalletConnected) {
     setRequiresConnection(false);
@@ -30,10 +31,17 @@ export function ConnectionModal() {
   }
   
   // Simple connect function
-  const handleConnect = () => {
-    if (connectors.length > 0) {
-      connect({ connector: connectors[0] });
-      setRequiresConnection(false);
+  const handleConnect = async () => {
+    setIsLoading(true);
+    try {
+      if (connectResult.connectors && connectResult.connectors.length > 0) {
+        await connectResult.connect({ connector: connectResult.connectors[0] });
+        setRequiresConnection(false);
+      }
+    } catch (error) {
+      console.error("Connection error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -79,8 +87,7 @@ export function ConnectionModal() {
                 
                 <Button
                   variant="default"
-                  size="lg"
-                  className="w-full justify-center bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600"
+                  className="w-full p-3 text-base justify-center bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600"
                   onClick={handleConnect}
                   disabled={isLoading}
                 >
@@ -100,8 +107,7 @@ export function ConnectionModal() {
                 
                 <Button
                   variant="default"
-                  size="lg"
-                  className="w-full justify-center bg-gradient-to-r from-orange-500 to-amber-500"
+                  className="w-full p-3 text-base justify-center bg-gradient-to-r from-orange-500 to-amber-500"
                   onClick={installMetaMask}
                 >
                   <img src="https://metamask.io/images/metamask-fox.svg" alt="MetaMask" className="h-5 w-5 mr-3" />

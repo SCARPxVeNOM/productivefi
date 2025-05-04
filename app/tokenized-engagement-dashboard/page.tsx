@@ -21,14 +21,14 @@ interface EngagementData {
   }[];
 }
 
-// Define a type for mixed chart data that can have both line and bar charts
-type MixedChartData = ChartData<'line' | 'bar'>;
+// Define chart data type that's specifically for Line chart
+type LineChartData = ChartData<'line'>;
 
 export default function TokenizedEngagementDashboard() {
   const [tokenBalance, setTokenBalance] = useState<number>(0);
   const [engagementData, setEngagementData] = useState<EngagementData | null>(null);
   const [userRank, setUserRank] = useState<number | null>(null);
-  const [chartData, setChartData] = useState<MixedChartData | null>(null);
+  const [chartData, setChartData] = useState<LineChartData | null>(null);
   const { address } = useAccount();
   const router = useRouter();
 
@@ -56,7 +56,7 @@ export default function TokenizedEngagementDashboard() {
         setEngagementData(mockData);
 
         // Create chart data from mock data
-        const data: MixedChartData = {
+        const data: LineChartData = {
           labels: mockData.history.map(item => item.date),
           datasets: [
             {
@@ -66,13 +66,13 @@ export default function TokenizedEngagementDashboard() {
               backgroundColor: 'rgba(0, 255, 255, 0.2)',
               tension: 0.4,
               yAxisID: 'y1',
-              type: 'line' as const
             },
             {
               label: 'Tokens Earned',
               data: mockData.history.map(item => item.tokens),
-              type: 'bar' as const,
+              borderColor: 'rgb(255, 99, 132)',
               backgroundColor: 'rgba(255, 99, 132, 0.5)',
+              tension: 0.4,
               yAxisID: 'y2'
             },
           ],

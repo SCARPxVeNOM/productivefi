@@ -17,6 +17,11 @@ interface FormData {
   uri: string;
 }
 
+interface CoinCreateSuccess {
+  hash: string;
+  address: string;
+}
+
 export default function CreateCoinPage() {
   const { data: walletClient } = useWalletClient();
   const { address } = useAccount();
@@ -29,7 +34,7 @@ export default function CreateCoinPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ hash: string; address: string } | null>(null);
+  const [success, setSuccess] = useState<CoinCreateSuccess | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -78,7 +83,10 @@ export default function CreateCoinPage() {
         walletClient,
         publicClient
       );
-      setSuccess(result);
+      setSuccess({
+        hash: result.hash,
+        address: result.address || '',
+      });
       setFormData({ name: "", symbol: "", uri: "" });
     } catch (e) {
       console.error(e);
