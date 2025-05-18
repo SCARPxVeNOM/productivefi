@@ -6,10 +6,8 @@ import { createPublicClient, createWalletClient, http } from 'viem';
 import { mainnet } from 'viem/chains';
 import { injected } from 'wagmi/connectors';
 import { createCreatorClient } from '@zoralabs/protocol-sdk';
-import axios from 'axios';
-
-const PINATA_API_KEY = '26c48f1f91fb3215b55b';
-const PINATA_SECRET_API_KEY = '306cb16fe34499bbe0fca0f8c5e07b09639ff4935f84952e15e5b7b36b34c81c';
+import { uploadFileToIPFS } from '../../app/lib/uploadToIPFSClient';
+import { uploadMetadataToIPFS } from '../../app/lib/uploadMetadataToIPFSClient';
 
 const UploadMint = () => {
   const { address, isConnected } = useAccount();
@@ -30,33 +28,6 @@ const UploadMint = () => {
     setFile(selectedFile);
   };
 
-  const uploadToIPFS = async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const res = await axios.post('https://api.pinata.cloud/pinning/pinFileToIPFS', formData, {
-      maxBodyLength: Infinity,
-      headers: {
-        'Content-Type': `multipart/form-data; boundary=${(formData as any)._boundary}`,
-        pinata_api_key: PINATA_API_KEY,
-        pinata_secret_api_key: PINATA_SECRET_API_KEY,
-      },
-    });
-
-    return res.data.IpfsHash;
-  };
-
-  const uploadMetadataToIPFS = async (metadata: any) => {
-    const res = await axios.post('https://api.pinata.cloud/pinning/pinJSONToIPFS', metadata, {
-      headers: {
-        pinata_api_key: PINATA_API_KEY,
-        pinata_secret_api_key: PINATA_SECRET_API_KEY,
-      },
-    });
-
-    return res.data.IpfsHash;
-  };
-
   const handleMintNFT = async () => {
     if (!file || !address || !isConnected) {
       setStatus('Please connect your wallet and select a file');
@@ -72,8 +43,7 @@ const UploadMint = () => {
     setStatus('Uploading media to IPFS...');
 
     try {
-      const mediaHash = await uploadToIPFS(file);
-      const mediaURI = `ipfs://${mediaHash}`;
+      const mediaURI = await uploadFileToIPFS(file);
 
       setStatus('Uploading metadata...');
       const metadata = {
@@ -87,8 +57,7 @@ const UploadMint = () => {
         ],
       };
 
-      const metadataHash = await uploadMetadataToIPFS(metadata);
-      const metadataURI = `ipfs://${metadataHash}`;
+      const metadataURI = await uploadMetadataToIPFS(metadata);
 
       setStatus('Creating Zora edition...');
       const publicClient = createPublicClient({
@@ -128,84 +97,77 @@ const UploadMint = () => {
     } catch (err: any) {
       console.error(err);
       setStatus(`Error: ${err.message}`);
+    } finally {
+      setMinting(false);
     }
-
-    setMinting(false);
   };
 
   if (!mounted) return null;
 
   return (
-    <div className="max-w-xl mx-auto">
-      <div className="space-y-4">
+    <div className="flex flex-col h-full p-6 border rounded-md shadow-md bg-white dark:bg-gray-800">
+      <h2 className="text-2xl font-bold mb-6">Mint Your NFT</h2>
+      <div className="space-y-4 flex-1">
         <div>
-          <label className="block text-sm font-medium mb-1">Upload File</label>
+          <label className="block text-sm font-medium mb-1">
+            Upload File
+          </label>
           <input
             type="file"
-            accept="image/*,.pdf,.doc,.docx"
             onChange={handleFileChange}
             className="w-full p-2 border border-gray-300 rounded-md"
+            accept="image/*"
           />
         </div>
-
         <div>
-          <label className="block text-sm font-medium mb-1">Title</label>
+          <label className="block text-sm font-medium mb-1">
+            Title
+          </label>
           <input
             type="text"
-            placeholder="NFT Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md text-black"
+            className="w-full p-2 border border-gray-300 rounded-md"
+            placeholder="Enter NFT title"
           />
         </div>
-
         <div>
-          <label className="block text-sm font-medium mb-1">Description</label>
+          <label className="block text-sm font-medium mb-1">
+            Description
+          </label>
           <textarea
-            placeholder="Describe your content"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md text-black"
-            rows={4}
+            className="w-full p-2 border border-gray-300 rounded-md"
+            placeholder="Enter NFT description"
+            rows={3}
           />
         </div>
-
+        {status && (
+          <div className="mt-4 p-3 rounded-md bg-gray-100">
+            <p className="text-sm text-gray-700">{status}</p>
+          </div>
+        )}
+        {txHash && (
+          <div className="mt-4 p-3 rounded-md bg-green-100">
+            <p className="text-sm text-green-700">
+              Transaction Hash: {txHash}
+            </p>
+          </div>
+        )}
+      </div>
+      <div className="mt-auto">
         <button
           onClick={handleMintNFT}
-          disabled={!file || !isConnected || minting}
-          className={`w-full p-3 rounded-md ${
-            !file || !isConnected || minting
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+          disabled={minting || !file || !title.trim()}
+          className={`w-full py-2 px-4 rounded-md text-white font-medium ${
+            minting || !file || !title.trim()
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700'
           }`}
         >
           {minting ? 'Minting...' : 'Mint NFT'}
         </button>
-
-        {status && (
-          <div
-            className={`p-3 rounded-md ${
-              status.includes('error') || status.includes('Error')
-                ? 'bg-red-50 text-red-700 border border-red-200'
-                : 'bg-blue-50 text-blue-700 border border-blue-200'
-            }`}
-          >
-            <p>{status}</p>
-            {txHash && (
-              <p className="mt-2 text-sm">
-                Transaction:{' '}
-                <a
-                  href={`https://etherscan.io/tx/${txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  {txHash.slice(0, 10)}...{txHash.slice(-8)}
-                </a>
-              </p>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

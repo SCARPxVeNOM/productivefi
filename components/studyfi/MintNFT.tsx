@@ -149,45 +149,78 @@ const MintNFT = () => {
   if (!mounted) return null;
 
   return (
-    <div className="p-6 border rounded-md shadow-md bg-white dark:bg-gray-800">
+    <div className="flex flex-col h-full p-6 border rounded-md shadow-md bg-white dark:bg-gray-800">
       <h2 className="text-xl font-semibold mb-4">Advanced NFT Minting</h2>
-      
-      {!editionAddress ? (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Upload File</label>
-            <input 
-              type="file" 
-              accept="image/*,.pdf,.doc,.docx" 
-              onChange={handleFileChange}
-              className="w-full p-2 border border-gray-300 rounded-md" 
-            />
+      <div className="space-y-4 flex-1">
+        {!editionAddress ? (
+          <>
+            <div>
+              <label className="block text-sm font-medium mb-1">Upload File</label>
+              <input 
+                type="file" 
+                accept="image/*,.pdf,.doc,.docx" 
+                onChange={handleFileChange}
+                className="w-full p-2 border border-gray-300 rounded-md" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Title</label>
+              <input
+                type="text"
+                placeholder="NFT Collection Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md text-black dark:text-white"
+                style={{ color: 'black' }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Description</label>
+              <textarea
+                placeholder="Collection description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md text-black dark:text-white"
+                rows={3}
+                style={{ color: 'black' }}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md">
+              <p className="text-sm font-medium">Edition Address:</p>
+              <p className="font-mono text-xs">{editionAddress}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Quantity to Mint</label>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={quantity}
+                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                className="w-full p-2 border border-gray-300 rounded-md text-black dark:text-white"
+                style={{ color: 'black' }}
+              />
+              <p className="mt-1 text-xs text-gray-500">Maximum 100 per transaction</p>
+            </div>
+          </>
+        )}
+        {status && (
+          <div className={`mt-4 p-3 rounded-md ${
+            status.includes("error") || status.includes("Error")
+              ? "bg-red-50 text-red-700 border border-red-200"
+              : status.includes("Success") || status.includes("successfully")
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-blue-50 text-blue-700 border border-blue-200"
+          }`}>
+            <p>{status}</p>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
-            <input
-              type="text"
-              placeholder="NFT Collection Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md text-black dark:text-white"
-              style={{ color: 'black' }}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              placeholder="Collection description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md text-black dark:text-white"
-              rows={3}
-              style={{ color: 'black' }}
-            />
-          </div>
-          
+        )}
+      </div>
+      <div className="mt-auto">
+        {!editionAddress ? (
           <button
             onClick={createEdition}
             disabled={!file || !isConnected}
@@ -199,60 +232,28 @@ const MintNFT = () => {
           >
             Create Edition
           </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md">
-            <p className="text-sm font-medium">Edition Address:</p>
-            <p className="font-mono text-xs">{editionAddress}</p>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Quantity to Mint</label>
-            <input
-              type="number"
-              min="1"
-              max="100"
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              className="w-full p-2 border border-gray-300 rounded-md text-black dark:text-white"
-              style={{ color: 'black' }}
-            />
-            <p className="mt-1 text-xs text-gray-500">Maximum 100 per transaction</p>
-          </div>
-          
-          <button
-            onClick={mintEdition}
-            disabled={!isConnected}
-            className={`w-full p-3 rounded-md ${
-              !isConnected
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700"
-            }`}
-          >
-            Mint {quantity} NFT{quantity !== 1 ? 's' : ''}
-          </button>
-          
-          <button
-            onClick={() => setEditionAddress(null)}
-            className="w-full p-3 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
-          >
-            Create New Edition
-          </button>
-        </div>
-      )}
-      
-      {status && (
-        <div className={`mt-4 p-3 rounded-md ${
-          status.includes("error") || status.includes("Error")
-            ? "bg-red-50 text-red-700 border border-red-200"
-            : status.includes("Success") || status.includes("successfully")
-            ? "bg-green-50 text-green-700 border border-green-200"
-            : "bg-blue-50 text-blue-700 border border-blue-200"
-        }`}>
-          <p>{status}</p>
-        </div>
-      )}
+        ) : (
+          <>
+            <button
+              onClick={mintEdition}
+              disabled={!isConnected}
+              className={`w-full p-3 rounded-md ${
+                !isConnected
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              Mint {quantity} NFT{quantity !== 1 ? 's' : ''}
+            </button>
+            <button
+              onClick={() => setEditionAddress(null)}
+              className="w-full p-3 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 mt-2"
+            >
+              Create New Edition
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 };

@@ -107,7 +107,7 @@ export function HomePageContent() {
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
           >
-            Why Choose Creator Coins?
+            Why Choose ProductiveFi ?
           </motion.h2>
           <div className="grid md:grid-cols-3 gap-8">
             <motion.div
