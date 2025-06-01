@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const metadata = await req.json();
     
     const options = {
-      pinMetadata: {
+      pinataMetadata: {
         name: `metadata-${uuidv4()}.json`,
       },
     };

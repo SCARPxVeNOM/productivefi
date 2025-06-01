@@ -432,6 +432,11 @@ export default function Dashboard() {
               <Button variant="link" className="text-blue-400 hover:text-blue-300 p-0" onClick={() => window.location.href = "/gamefi"}>Explore GameFi</Button>
             </CardContent>
           </Card>
+          <Card className="bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl shadow-xl hover:scale-105 transform transition duration-300 cursor-pointer" onClick={() => window.location.href = 'https://683caf45083d3e7c75641d06--musical-tarsier-3e2be3.netlify.app/'}>
+            <CardContent className="text-white p-4 flex items-center justify-center h-full">
+              <button className="text-xl font-bold">Tokenized Engagement</button>
+            </CardContent>
+          </Card>
           <Card className={`${styles.card3d} bg-black/70 backdrop-blur-md text-white rounded-xl border border-purple-500/20 shadow-lg shadow-purple-500/10 hover:shadow-purple-500/30`}>
             <CardContent className={styles.cardContent3d}>
               <h2 className="text-xl font-semibold mb-2">StudyFi</h2>
@@ -442,4 +447,4 @@ export default function Dashboard() {
       </main>
     </div>
   );
-} 
+}
